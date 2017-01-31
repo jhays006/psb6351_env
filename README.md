@@ -1,4 +1,4 @@
-# psb6351_mattfeld
+# psb6351_env
 
 ## Welcome to the PSB6351 class repository
 
