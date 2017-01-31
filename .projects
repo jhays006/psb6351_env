@@ -1,0 +1,7 @@
+#! /bin/bash
+
+function hcp_env()
+{
+source /scratch/PSB6351/envs/.env/.psb6351_environment
+}
+
