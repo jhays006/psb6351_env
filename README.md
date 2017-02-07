@@ -1,4 +1,4 @@
-### Jason Hays readme file
+### Jason Hays readme file for homework: week 4
 There were a few steps to making the nii files:
 * Finding the right values for the convert shell file.
 * Fixing/debugging errors and changing err/out files.
