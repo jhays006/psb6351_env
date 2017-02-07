@@ -1,69 +1,45 @@
-# psb6351_env
+### Jason Hays readme file
+There were a few steps to making the nii files:
+* Finding the right values for the convert shell file.
+* Fixing/debugging errors and changing err/out files.
+ * Finding what to change in the heuristic file.
+  * Finding appropriate values for the heuristic file.
 
-## Welcome to the PSB6351 class repository
+### Finding the right values for the convert shell file.
+* Using the default converter (no -c means dcm2nii), the file would start like this:
+`./dicomconvert2_GE.py -d /scratch/... -o /scratch/... -f /scratch/... -q ... -s ...`
 
-We will use this repo to share code, submit homework assignments, and setup your environments
+* This step involved looking into the dicomconvert2_GE.py file to double check what the parameters were.
+ * -d is the dicom folder.
+ * -o is the output project folder.
+ * -f is the heuristic file that establishes what types of scans for which nii files are created.
+ * -q is the LSF queue.
+ * -s is the subject list (one person).
+ * -c was the converter, but I'm using the default (no known reason to use mri_convert over dcm2nii yet).
 
-To begin you will need to setup git on your High Performance Computer (HPC) account
+* Thus, the file ended like this:
+`./dicomconvert2_GE.py -d /scratch/PSB6351_2017/dicoms -o /scratch/PSB6351_2017/week4/hays/project_folder/ -f /scratch/PSB6351_2017/week4/hays/heuristic_shell.py -q PQ_fasoto -s subj001`
 
-1. [Set up](https://help.github.com/articles/set-up-git/) git on HPC
+### Fixing/debugging errors and changing err/out files.
+* Running the convert_dicom_shell.sh as it was would cause both runtime errors and debugging issues.
+ * The variable, trd_bold, was not defined and needed to simply be "bold" in the heuristic file (because "bold" was defined and the placement corresponded with the t1 and dwi).
+ * Furthermore, the err and out file locations needed to be updated in the dicomconvert2_GE.py to avoid overriding other students' err and out files.
 
-    Perform steps 2-4 in Setting up git.
+### Finding what to change in the heuristic file.
+* I wrote debugging file writers (because print() doesn't always work conveniently on LSF jobs) to figure out what values seqinfo contained before I knew what the heuristic file parameters were.
+ * They suggested that sl was the total slice count, nt was number of temporal positions, and s[12] was the series description.
 
-2. Set up your ssh [key](https://help.github.com/articles/connecting-to-github-with-ssh/)
+### Finding appropriate values for the heuristic file.
+* To find the slices for the structural scan, you can check Z01 (a T1 dicom) for the slice count (186) using the dicom_hdr command and the bash command grep with Perl regular expressions.
+`dicom_hdr /scratch/PSB6351_2017/dicoms/subj001/A/Z01 | grep -Po .*Acquisition//.*`
 
-    Make your passkey easy to remember.
-    First Generate a new SSH key - Follow steps 1-4
-    
-    Next add your ssh key to your github account - Follow steps 1-8
-    
-    Next test your SSH connection - Follow steps 1-5
+* There was no particular reason to prevent the bold dicoms' nt's from being a single value, so it was left as `nt != "**"` because it would not affect any of them -- the sub-name restriction of "TRD" was enough to get the full list of bold dicom files.
+ * To make sure there were not negative nt values (or some other obvious bad values).  The full list of the number of temporal positions was obtained with:
+ `dicom_hdr /scratch/PSB6351_2017/dicoms/subj001/A/* | grep -Po .*Temporal.* | sort | uniq`
 
-3. Modify your ~/.ssh/config file
+* To find a list of all applicable scan descriptions, the following command can be run to pipe the header to a regular expression search:
+`dicom_hdr /scratch/PSB6351_2017/dicoms/subj001/A/* | grep -Po .*Descr.* | sort | uniq`
+ * This revealed that the diffusion weighted image needed to look for "DTI" (after waiting a while!), which represents diffusion tensor imaging.
 
-    ```bash
-    ssh -T -p 443 git@ssh.github.com
-    ```
-    
-    You should see:
-    
-    > Hi username! You've successfully authenticated, but GitHub does not provide shell access.
-    
-    Add the following lines to your ~/.ssh/config file
-    
-    ```bash
-    vi ~/.ssh/config
-    ```
-
-    Host github.com
-    
-    Hostname ssh.github.com
-    
-    Port 443
-    
-4. Fork the psb6351_env repository
-
-    In a terminal type
-    
-    ```bash
-    cd place/to/keep/repository
-    git clone ssh://git@github.com/PSB6351/psb6351_env.git
-    cd psb6351_env
-    git remote add upstream ssh://git@github.com/PSB6351/psb6351_env.git
-    ```
-5. Chane repo configuration to ssh
-
-    Open .git/config
-    
-    find url= entry under section [remote "origin"]
-    
-    Change it from 
-    
-    url=https://github.com/PSB6351/psb6351_env.git
-    
-    to
-    
-    ssh://git@github.com/PSB6351/psb6351_env.git
-    
-    
-    
+### Output .nii Files
+* In total, there were 7 bold nii files, 1 diffusion weighted image nii file, and 1 anatomical (T1) nii file, which were readable in afni's viewer.
